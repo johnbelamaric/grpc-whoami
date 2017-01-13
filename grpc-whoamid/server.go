@@ -10,6 +10,8 @@ import (
 	"github.com/johnbelamaric/grpc-whoami/pb"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
+
 )
 
 type server struct {
@@ -17,7 +19,11 @@ type server struct {
 }
 
 func (s *server) Whoami(ctx context.Context, req *pb.Request) (*pb.Response, error) {
-	resp := &pb.Response{ServerName: s.name}
+	p, ok := peer.FromContext(ctx);
+	if !ok {
+		return nil, fmt.Errorf("Could not find peer in gRPC context.")
+	}
+	resp := &pb.Response{ServerName: s.name, ClientIp: p.Addr.String()}
 	return resp, nil
 }
 
