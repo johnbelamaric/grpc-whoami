@@ -19,6 +19,7 @@ server: deps
 
 .PHONY: docker
 docker: deps
+	cd grpc-whoami && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" && mv grpc-whoami ../grpc-whoamid
 	cd grpc-whoamid && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
 	cd grpc-whoamid && docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_VERSION) .
 

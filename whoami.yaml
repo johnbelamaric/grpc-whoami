@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-whoamid
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grpc-whoamid
+  template:
+    metadata:
+      labels:
+        app: grpc-whoamid
+    spec:
+      containers:
+      - name: grpc-whoamid
+        image: johnbelamaric/grpc-whoamid:latest
+        args:
+          - "-v"
+          - "-n=grpcwhoami.default.svc.cluster.local"
+          - "-key=/etc/tls/tls.key"
+          - "-cert=/etc/tls/tls.crt"
+          - "-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        ports:
+        - containerPort: 8123
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/tls
+      volumes:
+        - name: tls
+          secret:
+            secretName: grpc-whoami
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grpc-whoami
+  namespace: default
+spec:
+  volumes:
+  - name: tls
+    secret:
+      secretName: grpc-whoami
+  containers:
+  - name: grpc-whoami
+    image: johnbelamaric/grpc-whoamid:latest
+    command: ["sh", "-c", "while [ 1 ]; do sleep 2; done"]
+    volumeMounts:
+    - name: tls
+      mountPath: /etc/tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpcwhoami
+  namespace: default
+spec:
+  selector:
+    app: grpc-whoamid
+  ports:
+  - name: grpc-whoamid
+    port: 8123
+    protocol: TCP
+    targetPort: 8123
