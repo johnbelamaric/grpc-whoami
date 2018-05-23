@@ -27,6 +27,10 @@ deps:
 	cd grpc-whoamid && go get ${BUILD_VERBOSE}
 	cd grpc-whoami && go get ${BUILD_VERBOSE}
 
+.PHONY: pb
+pb:
+	protoc --go_out=plugins=grpc:pb whoami.proto
+
 .PHONY: clean
 clean:
 	go clean

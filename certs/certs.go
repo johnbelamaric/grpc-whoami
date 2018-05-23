@@ -99,8 +99,19 @@ func NewTLSConfig(certPath, keyPath, caPath string) (*tls.Config, error) {
                 return nil, err
         }
 
-        return &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: roots, InsecureSkipVerify: true}, nil
+        return &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: roots}, nil
 }
+
+func NewServerTLSConfig(certPath, keyPath, caPath string) (*tls.Config, error) {
+	c, err := NewTLSConfig(certPath, keyPath, caPath)
+	if err != nil {
+		return nil, err
+	}
+	c.ClientAuth = tls.RequireAndVerifyClientCert
+	c.ClientCAs = c.RootCAs
+	return c, nil
+}
+
 func loadRoots(caPath string) (*x509.CertPool, error) {
         roots := x509.NewCertPool()
 

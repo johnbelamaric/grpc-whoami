@@ -1,15 +1,17 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"fmt"
+	"log"
+	"net"
 	"os"
 
 	"github.com/johnbelamaric/grpc-whoami/certs"
 	"github.com/johnbelamaric/grpc-whoami/pb"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 
 )
@@ -23,7 +25,18 @@ func (s *server) Whoami(ctx context.Context, req *pb.Request) (*pb.Response, err
 	if !ok {
 		return nil, fmt.Errorf("Could not find peer in gRPC context.")
 	}
-	resp := &pb.Response{ServerName: s.name, ClientIp: p.Addr.String()}
+	issuer := "n/a"
+	subject := "n/a"
+	if t, ok := p.AuthInfo.(credentials.TLSInfo); ok {
+		if t.State.VerifiedChains != nil && len(t.State.VerifiedChains) > 0 {
+			if t.State.VerifiedChains[0] != nil && len(t.State.VerifiedChains[0]) > 0 {
+				issuer = t.State.VerifiedChains[0][0].Issuer.CommonName
+				subject = t.State.VerifiedChains[0][0].Subject.CommonName
+			}
+		}
+	}
+	log.Printf("%s %s %s\n", p.Addr.String(), issuer, subject)
+	resp := &pb.Response{ServerName: s.name, ClientIp: p.Addr.String(), ClientIssuer: issuer, ClientSubject: subject}
 	return resp, nil
 }
 
@@ -61,19 +74,19 @@ func main() {
 	whoami := &server{name: serverName}
 
 	if verbose {
-		fmt.Printf("Started on %s with server name '%s'.\n", serviceEP, serverName)
+		log.Printf("Started on %s with server name '%s'.\n", serviceEP, serverName)
 	}
-	tlsConfig, err := certs.NewTLSConfig(cert, key, ca)
+	tlsConfig, err := certs.NewServerTLSConfig(cert, key, ca)
 	if err != nil {
 		panic(err)
 	}
-	service, err := tls.Listen("tcp", serviceEP, tlsConfig)
+	service, err := net.Listen("tcp", serviceEP)
 	if err != nil {
 		panic(err)
 	}
 
 	var s *grpc.Server
-	s = grpc.NewServer()
+	s = grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig)))
 
 	pb.RegisterWhoamiServer(s, whoami)
 	s.Serve(service)

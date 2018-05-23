@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 
 	"github.com/johnbelamaric/grpc-whoami/certs"
 	"github.com/johnbelamaric/grpc-whoami/pb"
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	if verbose {
-		fmt.Printf("endpoint: %s\n", endpoint)
+		log.Printf("endpoint: %s\n", endpoint)
 	}
 
 	tlsConfig, err := certs.NewTLSConfig(cert, key, ca)
@@ -47,8 +47,8 @@ func main() {
 	resp, err := client.Whoami(context.Background(), &pb.Request{})
 
 	if err == nil {
-		fmt.Printf("server: %s, client_ip: %s\n", resp.ServerName, resp.ClientIp)
+		log.Printf("%s %s %s %s\n", resp.ServerName, resp.ClientIp, resp.ClientIssuer, resp.ClientSubject)
 	} else {
-		fmt.Printf("error: %s\n", err)
+		log.Printf("error: %s\n", err)
 	}
 }
